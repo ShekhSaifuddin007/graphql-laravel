@@ -1,0 +1,85 @@
+"A date string with format `Y-m-d`, e.g. `2011-05-23`."
+scalar Date @scalar(class: "Nuwave\\Lighthouse\\Schema\\Types\\Scalars\\Date")
+
+"A datetime string with format `Y-m-d H:i:s`, e.g. `2018-05-23 13:43:32`."
+scalar DateTime @scalar(class: "Nuwave\\Lighthouse\\Schema\\Types\\Scalars\\DateTime")
+
+type Query {
+    users: [User!]! @paginate(defaultCount: 10)
+    user(id: ID @eq): User @find
+
+#    books: [Book!]! @paginate(defaultCount: 10)
+    books: [Book] @all
+    book(id: ID @eq): Book @find
+    featuredBooks(featured: Boolean! @eq): [Book] @all
+    complex(search: String!): [Book]
+
+    categories: [Category] @all
+    category(id: ID @eq): Category @find
+}
+
+type Mutation {
+    # category controller ---------------------
+    createCategory(
+        name: String! @rules(
+            apply: ["required", "string", "unique:categories,name"]
+            messages: [ # custom error messages
+                {
+                    rule: "unique"
+                    message: "This category already exist, try another.!"
+                }
+            ]
+        )
+    ): Category! @create
+    updateCategory(id: ID!, name: String! @rules(apply: ["required", "string", "unique:categories,name"])): Category! @update
+    deleteCategory(id: ID!): Category @delete
+
+    # book controller ---------------------
+    createBook(
+        category_id: Int! @rules(apply: ["required", "integer", "exists:categories,id"])
+        title: String! @rules(apply: ["required", "string"])
+        author: String! @rules(apply: ["required", "string"])
+        image: String @rules(apply: ["nullable", "image", "mimes:jpg,jpeg,png,gif"])
+        description: String @rules(apply: ["nullable", "string"])
+        link: String @rules(apply: ["nullable", "string"])
+        featured: Boolean @rules(apply: ["nullable", "boolean"])
+    ): Book! @create
+
+    updateBook(
+        id: ID!
+        category_id: Int! @rules(apply: ["required", "integer", "exists:categories,id"])
+        title: String! @rules(apply: ["required", "string"])
+        author: String! @rules(apply: ["required", "string"])
+        image: String @rules(apply: ["nullable", "image", "mimes:jpg,jpeg,png,gif"])
+        description: String @rules(apply: ["nullable", "string"])
+        link: String @rules(apply: ["nullable", "string"])
+        featured: Boolean @rules(apply: ["nullable", "boolean"])
+    ): Book! @update
+
+    deleteBook(id: ID!): Book! @delete
+}
+
+type User {
+    id: ID!
+    name: String!
+    email: String!
+    created_at: DateTime!
+    updated_at: DateTime!
+}
+
+type Book {
+    id: ID!
+    title: String!
+    author: String!
+    image: String
+    description: String
+    link: String
+    featured: Boolean
+    category: Category! @belongsTo
+}
+
+type Category {
+    id: ID!
+    name: String!
+    books: [Book]! @hasMany
+}
